@@ -1,0 +1,141 @@
+/* --- style.css --- */
+
+:root {
+    --main-blue: #004d9c; /* Bleu profond de la clinique (inspiré du bouton) */
+    --light-gray: #f4f4f4;
+    --border-gray: #ccc;
+    --step-gray: #aaa;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: var(--light-gray);
+    display: flex;
+    justify-content: center;
+}
+
+.container {
+    width: 90%;
+    max-width: 800px;
+    background-color: white;
+    padding: 30px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+}
+
+h1 {
+    color: var(--main-blue);
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+/* --- Style de l'étape de progression (Timeline) --- */
+.steps-container {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 40px;
+    padding: 0 5%; /* Espace pour les numéros */
+}
+
+.step {
+    text-align: center;
+    position: relative;
+    flex: 1;
+}
+
+.step-number {
+    width: 30px;
+    height: 30px;
+    line-height: 30px;
+    border-radius: 50%;
+    background-color: var(--step-gray);
+    color: white;
+    margin: 0 auto 5px;
+    font-weight: bold;
+    z-index: 2;
+    position: relative;
+}
+
+.step-title {
+    font-size: 0.9em;
+    color: var(--step-gray);
+    text-transform: uppercase;
+}
+
+.step.active .step-number {
+    background-color: var(--main-blue);
+}
+
+.step.active .step-title {
+    color: var(--main-blue);
+    font-weight: bold;
+}
+
+.step:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 2px;
+    background: var(--border-gray);
+    top: 15px; /* Aligné au centre du numéro */
+    left: 50%;
+    z-index: 1;
+}
+
+.step.active:not(:last-child)::after {
+    background: var(--main-blue); /* Ligne de progression remplie */
+}
+
+/* --- Style du formulaire et des champs --- */
+form {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+}
+
+label {
+    font-weight: bold;
+    color: #333;
+    display: block;
+    margin-bottom: 5px;
+}
+
+input[type="text"], input[type="email"], input[type="tel"], input[type="date"], input[type="time"], select, textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--border-gray);
+    border-radius: 4px;
+    box-sizing: border-box; /* Inclut le padding dans la largeur */
+}
+
+/* --- Boutons --- */
+button {
+    background-color: var(--main-blue);
+    color: white;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1.1em;
+    font-weight: bold;
+    transition: background-color 0.3s;
+    margin-top: 15px;
+    grid-column: 1 / -1; /* Pour que le bouton occupe toute la largeur */
+}
+
+button:hover {
+    background-color: #003366;
+}
+
+.nav-buttons {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.nav-buttons button {
+    flex: 1;
+    margin: 0;
+}
