@@ -107,7 +107,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
 <meta charset="UTF-8">
 <title>Modifier <?= htmlspecialchars($tableSql) ?></title>
-<link rel="stylesheet" href="css/admin.css">
+<link rel="stylesheet" href="css/table_admin.css?v=<?php echo time(); ?>">
 </head>
 <body>
 <header class="admin-header">

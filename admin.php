@@ -69,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $table = $_POST['table'] ?? '';
         $id = $_POST['id'] ?? '';
         $allowed = ['Personnel'=>'Personnel','personnel'=>'Personnel',
-            'service'=>'service','Service'=>'service',
+            'service'=>'Service','Service'=>'Service',
             'Medecin'=>'Medecin','medecin'=>'Medecin'];
         if (!array_key_exists($table,$allowed)) $messages[] = ['type'=>'danger','text'=>'Table non autorisée.'];
         else {
