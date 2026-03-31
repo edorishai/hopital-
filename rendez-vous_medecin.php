@@ -6,13 +6,14 @@ if (!file_exists($cfg)) { $cfg = __DIR__ . '/../config-db.php'; }
 if (!file_exists($cfg)) { die('config-db.php introuvable — vérifiez le chemin: ' . __DIR__); }
 require_once $cfg;
 
+// 1. Récupère l'id utilisateur connecté
+$uid = $_SESSION['user_id'] ?? null;
 
-// Autorise les administratifs et les médecins
-if (!isset($_SESSION['user_id']) || (($_SESSION['nom_role'] ?? '') !== 'Administratif' && ($_SESSION['nom_role'] ?? '') !== 'Médecin' && ($_SESSION['role_app'] ?? '') !== 'medecin')) {
+// 2. Autorise les administratifs et les médecins, sinon on bloque
+if (!$uid || (($_SESSION['nom_role'] ?? '') !== 'Administratif' && ($_SESSION['nom_role'] ?? '') !== 'Médecin' && ($_SESSION['role_app'] ?? '') !== 'medecin')) {
     header('Location: page_connexion.php');
     exit;
 }
-
 
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -20,38 +21,32 @@ if (empty($_SESSION['csrf_token'])) {
 
 $messages = [];
 
-$services = [];
-try {
-    $stmt = $pdo->query("SELECT id_service, nom_service FROM Service ORDER BY nom_service");
-    $services = $stmt->fetchAll(PDO::FETCH_ASSOC);
-} catch (Exception $e) {
-    $messages[] = [
-        'type' => 'danger',
-        'text' => 'Impossible de charger la liste des services : '.$e->getMessage()
-    ];
-}
+// 3. Variables pour les filtres
+$isDoctor = (($_SESSION['nom_role'] ?? '') === 'Médecin' || ($_SESSION['role_app'] ?? '') === 'medecin');
+$filterMonth = $_GET['mois'] ?? '';
 
-$filterMonth   = $_GET['mois'] ?? '';         // format attendu YYYY‑MM
-$filterService = $_GET['id_service'] ?? '';
-
+// 4. Construction intelligente de la requête SQL (Filtres combinés)
 $where = [];
+
+if ($isDoctor) {
+    // Règle n°1 : Le médecin ne voit QUE ses propres hospitalisations
+    $where[] = "h.id_personne = " . intval($uid);
+}
+
 if ($filterMonth !== '' && preg_match('/^\d{4}-\d{2}$/', $filterMonth)) {
-    // C'est ICI qu'on change la colonne : on utilise date_admission
-    $where[] = "DATE_FORMAT(h.date_admission, '%Y-%m') = '$filterMonth'"; 
+    // Règle n°2 : On filtre sur le mois choisi (sur la date_admission)
+    $where[] = "DATE_FORMAT(h.date_admission, '%Y-%m') = '$filterMonth'";
 }
 
-if ($filterService !== '' && ctype_digit($filterService)) {
-    $where[] = "p.id_service = ".intval($filterService);
-}
+// On assemble tous les morceaux avec des "AND"
+$filterSql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
 
-$filterSql = $where ? 'WHERE '.implode(' AND ', $where) : '';
-
-// requête de base, avec les jointures nécessaires
+// 5. Requête de base
 $baseSql = "
     SELECT
         h.date_admission,
         h.heure_intervention,
-        th.type_pre_admission       AS type_hospitalisation
+        th.type_pre_admission AS type_hospitalisation
     FROM Hospitalisation AS h
     LEFT JOIN Type_hospitalisation AS th
            ON h.id_type = th.id_type
@@ -60,15 +55,9 @@ $baseSql = "
     LEFT JOIN Service AS s
            ON p.id_service = s.id_service
     $filterSql
+    ORDER BY h.date_admission ASC, h.heure_intervention ASC
     LIMIT 1000
 ";
-
-// Récupère l id utilisateur connecté
-$uid = $_SESSION['user_id'] ?? null;
-if (!$uid) {
-    header('Location: connexion.php');
-    exit;
-}
 
 if (isset($_GET['debug']) && $_GET['debug']==='1') {
     ini_set('display_errors',1);
@@ -86,21 +75,14 @@ if (isset($_GET['debug']) && $_GET['debug']==='1') {
     echo "</pre>";
 }
 
-
-
-
-
-
-
 function render_table(PDO $pdo, string $tableName, string $displayName, array $options = []) {
-    // option pour ne pas afficher la colonne "Actions"
-    $showActions = empty($options['hide_actions']); // modifié
+    $showActions = empty($options['hide_actions']);
 
     echo "<section class='table-section'>";
     echo "<h3 class='table-title'>" . htmlspecialchars($displayName) . "</h3>";
     try {
-        if (!empty($options['custom_sql'])) {            // modifié
-            $sql = $options['custom_sql'];               // modifié
+        if (!empty($options['custom_sql'])) {
+            $sql = $options['custom_sql'];
         } else {
             $sql = "SELECT * FROM `$tableName` LIMIT 1000";
         }
@@ -108,25 +90,28 @@ function render_table(PDO $pdo, string $tableName, string $displayName, array $o
         $stmt = $pdo->query($sql);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
         if (count($rows) === 0) {
-            echo "<p class='muted'>Aucune donnée dans $displayName.</p></section>";
+            echo "<p class='muted'>Aucun rendez-vous trouvé.</p></section>";
             return;
         }
         $fields = array_keys($rows[0]);
 
         $wrapperClass = !empty($options['small']) ? 'table-wrapper small' :
                         (!empty($options['service']) ? 'table-wrapper service-table'
-                                                    : 'table-wrapper full');
+                                                     : 'table-wrapper full');
         echo "<div class='$wrapperClass'>";
         echo "<table class='admin-table'><thead><tr>";
-        foreach ($fields as $f) echo "<th>" . htmlspecialchars($f) . "</th>";
-        if ($showActions) echo "<th>Actions</th>";     // modifié
+        foreach ($fields as $f) {
+            $colName = str_replace('_', ' ', ucfirst($f));
+            echo "<th>" . htmlspecialchars($colName) . "</th>";
+        }
+        if ($showActions) echo "<th>Actions</th>";
         echo "</tr></thead><tbody>";
 
         foreach ($rows as $row) {
             echo "<tr>";
             foreach ($fields as $f) {
                 $val     = $row[$f];
-                $display = is_null($val) ? "<em>null</em>"
+                $display = is_null($val) ? "<em>Non défini</em>"
                                          : htmlspecialchars((string)$val);
                 $plain   = strip_tags($display);
                 if (mb_strlen($plain) > 50) {
@@ -134,7 +119,7 @@ function render_table(PDO $pdo, string $tableName, string $displayName, array $o
                 }
                 echo "<td title='" . htmlspecialchars($plain) . "'>$display</td>";
             }
-            if ($showActions) {                             // modifié
+            if ($showActions) {
                 $pkName  = $fields[0];
                 $pkValue = $row[$pkName];
                 echo "<td class='actions-cell'>"
@@ -154,22 +139,30 @@ function render_table(PDO $pdo, string $tableName, string $displayName, array $o
              htmlspecialchars($e->getMessage()) . "</div>";
     }
 }
-
-
 ?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Tableau de bord - Admin</title>
-
+<title>Tableau de bord - Médecin</title>
 <link rel="stylesheet" href="css/rendez-vous.css?v=<?php echo time(); ?>">
-
+<style>
+    /* Petit ajout pour le bouton "Effacer le filtre" */
+    .btn-clear {
+        background-color: transparent;
+        color: #64748b;
+        border: 1px solid #cbd5e1;
+    }
+    .btn-clear:hover {
+        background-color: #f1f5f9;
+        color: #334155;
+    }
+</style>
 </head>
 <body>
 <header class="admin-header">
     <div class="header-container">
-        <h1>liste des rendez-vous</h1>
+        <h1>Mes rendez-vous</h1>
         <nav class="admin-nav">
             <button class="logout" onclick="location.href='page_connexion.php'">Déconnexion</button>
         </nav>
@@ -185,53 +178,31 @@ function render_table(PDO $pdo, string $tableName, string $displayName, array $o
         <?php endforeach; ?>
     </div>
 
-    <div class="container">
-
-
-
-
-
-
-
-
-
     <section class="tables-area">
         <form method="get" class="filter-form">
             <label>
-                Mois :
-                <input type="month" name="mois"
-                    value="<?= htmlspecialchars($filterMonth) ?>">
+                Filtrer par mois :
+                <input type="month" name="mois" value="<?= htmlspecialchars($filterMonth) ?>">
             </label>
-            <label>
-                Service :
-                <select name="id_service">
-                    <option value="">Tous</option>
-                    <?php foreach ($services as $s): ?>
-                        <option value="<?= $s['id_service'] ?>"
-                            <?= $filterService === $s['id_service'] ? 'selected' : '' ?>>
-                            <?= htmlspecialchars($s['nom_service']) ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </label>
-            <button type="submit">Filtrer</button>
+            <button type="submit">Rechercher</button>
+            
+            <?php if ($filterMonth !== ''): ?>
+                <button type="button" class="btn-clear" onclick="location.href='rendez-vous_medecin.php'">Effacer</button>
+            <?php endif; ?>
         </form>
-    <?php
+
+        <?php
         render_table(
             $pdo,
             'Hospitalisation',
-            'Hospitalisation',
+            'Planning',
             [
                 'hide_actions' => true,
-                'custom_sql'   => $baseSql        // <<< on reprend la requête définie plus haut
+                'custom_sql'   => $baseSql
             ]
         );
         ?>
     </section>
-
-    
-
-
 
 </main>
 </body>
