@@ -36,8 +36,10 @@ $filterService = $_GET['id_service'] ?? '';
 
 $where = [];
 if ($filterMonth !== '' && preg_match('/^\d{4}-\d{2}$/', $filterMonth)) {
-    $where[] = "DATE_FORMAT(h.heure_intervention, '%Y-%m') = '$filterMonth'"; // ajuster le nom du champ de date
+    // C'est ICI qu'on change la colonne : on utilise date_admission
+    $where[] = "DATE_FORMAT(h.date_admission, '%Y-%m') = '$filterMonth'"; 
 }
+
 if ($filterService !== '' && ctype_digit($filterService)) {
     $where[] = "p.id_service = ".intval($filterService);
 }
@@ -160,13 +162,16 @@ function render_table(PDO $pdo, string $tableName, string $displayName, array $o
 <head>
 <meta charset="UTF-8">
 <title>Tableau de bord - Admin</title>
-<link rel="stylesheet" href="css/rendez-vous.css">
+
+<link rel="stylesheet" href="css/rendez-vous.css?v=<?php echo time(); ?>">
+
 </head>
 <body>
 <header class="admin-header">
     <div class="header-container">
         <h1>liste des rendez-vous</h1>
         <nav class="admin-nav">
+            <button class="logout" onclick="location.href='page_connexion.php'">Déconnexion</button>
         </nav>
     </div>
 </header>

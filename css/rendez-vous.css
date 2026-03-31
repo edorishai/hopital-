@@ -52,6 +52,25 @@ body {
     letter-spacing: -1px;
     text-shadow: 0 4px 10px rgba(0,0,0,0.3);
 }
+header nav button {
+    margin-left: 10px;
+    padding: 10px 18px;
+    background-color: rgba(255,255,255,0.1);
+    color: white;
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+header nav button:hover { background-color: white; color: #004080; }
+
+header nav button.logout {
+    background-color: #ef4444;
+    border: none;
+}
+header nav button.logout:hover { background-color: #dc2626; color: white; }
 
 /* ==========================================================================
    CONTENEUR PRINCIPAL (La carte flottante)
@@ -190,6 +209,18 @@ body {
     border-bottom: 1px solid var(--border-soft);
     transition: all 0.2s ease;
 }
+
+.btn-delete {
+    background: #fef2f2;
+    color: #ef4444;
+    padding: 6px 12px;
+    border: 1px solid #fee2e2;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+.btn-delete:hover { background: #fee2e2; }
 
 /* Effet de survol : la ligne entière se détache légèrement */
 .admin-table tbody tr {

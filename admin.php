@@ -164,7 +164,8 @@ function render_table(PDO $pdo,string $tableName,string $editPage,string $displa
         <h1>Panneau d'administration</h1>
         <nav class="admin-nav">
             <button onclick="location.href='../pre-admission/admission.php'">Gérer les hospitalisations</button>
-            
+            <button onclick="location.href='gestion_patients.php'">Gérer les Pré-admissions</button>
+            <button onclick="location.href='rendez-vous_medecin.php'">Rendez-vous medecin</button>
             <button class="logout" onclick="location.href='page_connexion.php'">Déconnexion</button>
         </nav>
     </div>

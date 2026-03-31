@@ -19,6 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'https://www.google.com/recaptcha/api/siteverify?secret=' . $recaptchaSecret . '&response=' . $recaptchaResponse
     );
     $recaptchaData = json_decode($recaptchaVerify);
+    
 
     if (!$recaptchaData->success) {
         $message = "Veuillez valider le captcha.";
@@ -83,9 +84,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <input type="email" name="email" placeholder="Email" required><br><br>
             <input type="password" name="password" placeholder="Mot de passe" required><br><br>
             
-            <div class="g-recaptcha" data-sitekey="6LevTOErAAAAAE2JUu1xHFK1qgDlYWzeWYLiKAxJ"></div><br>
+            <div class="g-recaptcha" 
+                 data-sitekey="6LevTOErAAAAAE2JUu1xHFK1qgDlYWzeWYLiKAxJ"
+                 data-callback="activerBouton"
+                 data-expired-callback="desactiverBouton">
+            </div><br>
             
-            <button class="btn btn-primary" type="submit">Connexion</button>
+            <button id="monBouton" class="btn btn-primary" type="submit" disabled>Connexion</button>
+
 
             <div class="motpasse">
             <a href="passeoublie.php">Mot de passe oublié ?</a>
@@ -95,3 +101,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 </body>
 </html>
+
+<script>
+  function activerBouton() {
+    document.getElementById("monBouton").disabled = false;
+  }
+
+  function desactiverBouton() {
+    document.getElementById("monBouton").disabled = true;
+  }
+</script>
